@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { shouldForwardAuthCode } from "@/lib/otp";
 
 const PROTECTED = [
   /^\/home(?:\/|$)/,
@@ -14,6 +15,12 @@ const PROTECTED = [
 ];
 
 export async function middleware(request: NextRequest) {
+  if (shouldForwardAuthCode(request.nextUrl.pathname, request.nextUrl.searchParams.get("code"))) {
+    const callback = request.nextUrl.clone();
+    callback.pathname = "/auth/callback";
+    return NextResponse.redirect(callback);
+  }
+
   const response = NextResponse.next({ request });
   const protectedPath = PROTECTED.some((pattern) => pattern.test(request.nextUrl.pathname));
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

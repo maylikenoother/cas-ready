@@ -10,6 +10,13 @@ const steps = [
 
 const topics = ["Course", "University", "Why the UK", "Money", "Career", "Study history", "Accommodation", "Research", "Previous visas"];
 
+const faqs = [
+  ["Is this the real university interview?", "No. You practise the shape of it here. The university still runs its own recording, and only they mark that one."],
+  ["What is free?", "One timed question, with the full notes for that answer. A full mock needs a subscription."],
+  ["Will a high score mean I pass?", "No. The band is a practice guide. It does not predict a CAS or a visa."],
+  ["What do you record?", "Video and audio, after you agree. Files stay private, and you can delete the account. The check for lighting is brightness only."],
+];
+
 export default function HomePage() {
   return (
     <>
@@ -18,9 +25,7 @@ export default function HomePage() {
         <div className="wrap">
           <section className="hero">
             <div>
-              <p className="eyebrow" style={{ letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)", fontSize: "0.82rem" }}>
-                For students heading to the UK
-              </p>
+              <p className="kicker">For students heading to the UK</p>
               <h1>Practise the interview that is recorded once.</h1>
               <p className="lede">
                 Many UK universities ask international applicants to pass a short recorded credibility interview before they issue a CAS.
@@ -83,6 +88,50 @@ export default function HomePage() {
                 Bands are 80 and above Green, 55 to 79 Amber, below 55 Red. They are a practice guide, and they have not been validated by an admissions team.
               </p>
             </article>
+          </section>
+
+          <section className="section">
+            <h2>Simple prices</h2>
+            <div className="grid-3">
+              <article className="card">
+                <h3>Free question</h3>
+                <p className="score-figure" style={{ fontSize: "2rem" }}>£0</p>
+                <p className="small muted">One answer. Full feedback. No card.</p>
+              </article>
+              <article className="card">
+                <h3>Starter</h3>
+                <p className="score-figure" style={{ fontSize: "2rem" }}>£9.99</p>
+                <p className="small muted">Four mocks a month, plus practice with hints.</p>
+              </article>
+              <article className="card">
+                <h3>Ready</h3>
+                <p className="score-figure" style={{ fontSize: "2rem" }}>£24.99</p>
+                <p className="small muted">Unlimited mocks in the weeks before the real interview.</p>
+              </article>
+            </div>
+            <p style={{ marginTop: 12 }}><Link href="/pricing">Compare the plans</Link></p>
+          </section>
+
+          <section className="section grid-2">
+            <article className="card">
+              <h2>Private by design</h2>
+              <p>Recordings sit in a private store. Sponsor income is not shown on a university or organisation summary. You can delete everything from your account.</p>
+              <Link href="/privacy">Read the privacy notice</Link>
+            </article>
+            <article className="card">
+              <h2>Calm on a small phone</h2>
+              <p>Large type, short pages, and small video files. If the camera will not start, you can still practise the timer by typing.</p>
+            </article>
+          </section>
+
+          <section className="section faq stack">
+            <h2>Questions students ask</h2>
+            {faqs.map(([question, answer]) => (
+              <details key={question}>
+                <summary>{question}</summary>
+                <p>{answer}</p>
+              </details>
+            ))}
           </section>
 
           <section className="section">

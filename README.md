@@ -70,17 +70,54 @@ That creates the question bank (39 questions), the University of Lincoln profile
 
 If the storage section reports an error, open **Storage**, create a bucket named `recordings`, set it to **private**, and run the schema file again. The policy statements skip themselves if they already exist.
 
-### Turn on email sign-in
+### Turn on email codes
+
+Sign-in is a 6-digit code. The same address works for a first visit and for coming back. The app asks Supabase to email the code and then checks it with `verifyOtp`. It does not depend on the link in the message. If someone taps the link anyway, `/auth/callback` still finishes the sign-in.
 
 1. Open **Authentication → Providers → Email**. Leave Email enabled.
-2. Open **Authentication → URL configuration**.
-3. Set **Site URL** to `http://localhost:3000` while you are developing.
-4. Add `http://localhost:3000/auth/callback` to **Redirect URLs**.
-5. When you deploy, add the Vercel URL as well, for example `https://your-app.vercel.app/auth/callback`.
+2. Set **Email OTP expiration** to `600` seconds (10 minutes). The code screen counts down those same 10 minutes. A shorter setting in Supabase would expire the code before the screen says it has.
+3. Open **Authentication → URL configuration**.
+4. Set **Site URL** to `http://localhost:3000` while you are developing.
+5. Add `http://localhost:3000/auth/callback` to **Redirect URLs**.
+6. When you deploy, set Site URL to the Vercel address and add `https://your-app.vercel.app/auth/callback` as well.
 
-Supabase sends both a link and a 6-digit code. The sign-in page accepts the code, which is easier on a phone. Check the Auth email template if the code is missing: the template should include `{{ .Token }}`.
+#### Email templates
 
-Confirmations can stay on. The user proves they own the inbox by entering the code.
+Open **Authentication → Emails → Templates**. Paste the text below into both **Magic Link** (people who already have an account) and **Confirm signup** (people signing in for the first time, if confirmations are on). Both must include `{{ .Token }}`, or the email will not contain the code.
+
+Magic Link:
+
+```html
+<h2>Your CAS Ready code</h2>
+<p>Enter this code on the sign-in page. It expires in 10 minutes.</p>
+<p style="font-size:28px;font-weight:700;letter-spacing:6px;">{{ .Token }}</p>
+<p>If you did not try to sign in, you can ignore this email.</p>
+<p>You can also open this link: <a href="{{ .ConfirmationURL }}">Continue to CAS Ready</a></p>
+```
+
+Confirm signup:
+
+```html
+<h2>Confirm your CAS Ready email</h2>
+<p>Enter this code on the sign-in page to finish creating your account. It expires in 10 minutes.</p>
+<p style="font-size:28px;font-weight:700;letter-spacing:6px;">{{ .Token }}</p>
+<p>If you did not ask for this, you can ignore this email.</p>
+<p>You can also open this link: <a href="{{ .ConfirmationURL }}">Continue to CAS Ready</a></p>
+```
+
+#### Email limits and your own mailer
+
+Supabase’s built-in email service is for trying the product. It is tightly rate limited. The number in force is shown under **Authentication → Rate Limits** as “Rate limit for sending emails”. On many projects that limit is 2 emails per hour, which is why a second code can fail on the live site. The sign-in screen says so when Supabase returns a rate-limit error.
+
+For a real site, send mail through your own provider, then raise that rate limit to a number you can afford.
+
+Resend is one option:
+
+1. In Resend, verify the domain you will send from, and create an API key.
+2. In Supabase, open **Project Settings → Authentication → SMTP Settings** and turn on custom SMTP.
+3. Host `smtp.resend.com`, port `465`, username `resend`, password the API key.
+4. Set the sender name and a from address on that verified domain, for example `CAS Ready <hello@yourdomain.com>`.
+5. Save, then send yourself a code from the sign-in page. The 10-minute countdown starts again each time a new code is sent. The Resend button waits 60 seconds between sends.
 
 ### Make yourself an admin
 

@@ -22,6 +22,7 @@ test("sign in offers an email code", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByLabel("Email")).toBeVisible();
   await expect(page.getByRole("button", { name: "Email me a code" })).toBeVisible();
+  await expect(page.getByText("expires after 10 minutes")).toBeVisible();
 });
 
 test("signed-out students are sent to sign in", async ({ page }) => {

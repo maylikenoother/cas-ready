@@ -13,8 +13,8 @@ export function AppShell({
     <div className="shell">
       <header className="shell-bar">
         <div className="shell-bar-inner">
-        <Link className="brand" href="/home">CAS Ready</Link>
-        <Link href="/settings">Account</Link>
+        <Link className="brand" href="/home"><span className="logo-mark" aria-hidden="true">C</span> CAS Ready</Link>
+        <Link className="account-link" href="/settings">Account</Link>
         <nav className="shell-nav" aria-label="Account">
             <Link href="/home">Home</Link>
             <Link href="/interview/new">Practise</Link>

@@ -97,6 +97,14 @@ export function InterviewRoom({
   }, [phase, index, prepSeconds, answerSeconds]);
 
   useEffect(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (phase !== "record" || !video || !stream) return;
+    video.srcObject = stream;
+    void video.play().catch(() => undefined);
+  }, [phase]);
+
+  useEffect(() => {
     if (phase !== "record") return;
     const onHide = () => {
       if (document.hidden) leftRef.current += 1;
@@ -317,6 +325,9 @@ export function InterviewRoom({
           <a href="/home">Leave</a>
           <span>{mode === "mock" ? "Mock" : mode === "trial" ? "Free question" : "Practice"} · {Math.min(index + 1, questions.length)} of {questions.length}</span>
         </div>
+        <div className="room-progress" role="progressbar" aria-valuemin={1} aria-valuemax={questions.length} aria-valuenow={Math.min(index + 1, questions.length)} aria-label="Interview progress">
+          <span style={{ width: `${questions.length ? (Math.min(index + 1, questions.length) / questions.length) * 100 : 0}%` }} />
+        </div>
         <p className="small">Practice only. This does not predict a CAS or a visa. {mode === "mock" || mode === "trial" ? "You cannot re-record in this mode." : "You can re-record in practice mode."}</p>
         {error ? <p className="banner banner-warn" role="alert">{error}</p> : null}
 
@@ -364,7 +375,7 @@ export function InterviewRoom({
             {phase === "record" ? (
               <p className="rec" role="status"><i /> Recording · {secondsLeft}s left</p>
             ) : null}
-            {!typedOnly && phase !== "notes" && phase !== "feedback" ? <video ref={videoRef} className="viewfinder" muted playsInline /> : null}
+            {(phase === "record" || phase === "review" || phase === "save") && !typedOnly ? <video ref={videoRef} className="viewfinder" muted playsInline /> : null}
             {phase === "type" ? (
               <>
                 <p role="status">{secondsLeft}s left to type the answer you would have said.</p>

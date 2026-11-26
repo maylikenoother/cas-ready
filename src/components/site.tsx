@@ -4,7 +4,7 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <div className="site-header-inner">
-        <Link className="brand" href="/">CAS Ready</Link>
+        <Link className="brand" href="/"><span className="logo-mark" aria-hidden="true">C</span> CAS Ready</Link>
         <nav className="nav" aria-label="Public">
           <Link href="/pricing">Pricing</Link>
           <Link href="/privacy">Privacy</Link>

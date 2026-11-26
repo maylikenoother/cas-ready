@@ -32,6 +32,7 @@ export default async function HomeDashboard() {
   return (
     <div className="stack-lg">
       <div>
+        <p className="kicker">Your practice</p>
         <h1>{profile.fullName ? `Hello, ${profile.fullName.split(" ")[0]}` : "Your practice"}</h1>
         <p className="muted">A quiet room, your own words, and a timer. That is the useful part.</p>
         <Disclaimer compact />
@@ -51,7 +52,7 @@ export default async function HomeDashboard() {
           <h2>Latest result</h2>
           {latest && asNumber(latest.overall_score) != null ? (
             <>
-              <p style={{ fontSize: "2.4rem", margin: 0 }}>{asNumber(latest.overall_score)}</p>
+              <p className="score-figure">{asNumber(latest.overall_score)}</p>
               {band === "green" || band === "amber" || band === "red" ? (
                 <span className={`band band-${band}`}><i /> {bandLabel(band as Band)}</span>
               ) : <p>No readiness band on that session.</p>}

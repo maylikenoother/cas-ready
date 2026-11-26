@@ -42,7 +42,7 @@ export default async function ReportPage({ params }: { params: Promise<{ session
       <div className="grid-2">
         <article className="card">
           <p className="small">Overall practice score</p>
-          <p style={{ fontSize: "3rem", margin: "8px 0" }}>{asNumber(session.overall_score) ?? "—"}</p>
+          <p className="score-figure">{asNumber(session.overall_score) ?? "—"}</p>
           {band === "green" || band === "amber" || band === "red" ? (
             <>
               <span className={`band band-${band}`}><i /> {bandLabel(band)}</span>
