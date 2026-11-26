@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DownloadReport } from "@/components/download-report";
 import { notFound } from "next/navigation";
 import { Disclaimer } from "@/components/site";
 import { requireUser } from "@/lib/auth";
@@ -50,7 +51,7 @@ export default async function ReportPage({ params }: { params: Promise<{ session
               <p>{bandMeaning(band as Band)}</p>
             </>
           ) : <p>A readiness band was withheld because too few answers had words to score.</p>}
-          <a className="btn btn-secondary" href={`/api/reports/${sessionId}/pdf`}>Download PDF</a>
+          <DownloadReport sessionId={sessionId} />
         </article>
         <article className="card">
           <h2>By topic</h2>

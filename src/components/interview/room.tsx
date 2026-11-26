@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { DeviceCheck } from "@/components/device-check";
+import { useApiFetch } from "@/lib/api-fetch";
+import { readApiError } from "@/lib/api-request";
 import { emptySpeech, finaliseSpeech, rmsFromTimeDomain, stepSpeech, type SpeechStats } from "@/lib/speech";
 
 export type RoomQuestion = {
@@ -49,6 +51,7 @@ export function InterviewRoom({
   consented: boolean;
 }) {
   const { getToken } = useAuth();
+  const apiFetch = useApiFetch();
   const [phase, setPhase] = useState<Phase>(consented ? "device" : "consent");
   const [typedOnly, setTypedOnly] = useState(false);
   const [index, setIndex] = useState(startIndex);
@@ -117,13 +120,13 @@ export function InterviewRoom({
 
   async function acceptConsent() {
     setError("");
-    const response = await fetch("/api/consent", {
+    const response = await apiFetch("/api/consent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ kind: "recording", accepted: true }),
     });
     if (!response.ok) {
-      setError("Consent could not be saved, so the camera will stay off.");
+      setError(await readApiError(response, "Consent could not be saved, so the camera will stay off."));
       return;
     }
     setPhase("device");
@@ -229,7 +232,7 @@ export function InterviewRoom({
       audioBase64 = await blobToBase64(blobs.audio);
       audioMime = blobs.audio.type || "audio/webm";
     }
-    const response = await fetch(`/api/sessions/${sessionId}/answers`, {
+    const response = await apiFetch(`/api/sessions/${sessionId}/answers`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -249,7 +252,7 @@ export function InterviewRoom({
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setError(typeof body.error === "string" ? body.error : "The answer could not be saved.");
+      setError(typeof body.error === "string" && body.error.trim() ? body.error : "The answer could not be saved.");
       setPhase(typedOnly ? "type" : "review");
       return;
     }
@@ -279,10 +282,10 @@ export function InterviewRoom({
 
   async function finish() {
     setPhase("save");
-    const response = await fetch(`/api/sessions/${sessionId}/complete`, { method: "POST" });
+    const response = await apiFetch(`/api/sessions/${sessionId}/complete`, { method: "POST" });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      setError(typeof body.error === "string" ? body.error : "The report could not be finished.");
+      setError(typeof body.error === "string" && body.error.trim() ? body.error : "The report could not be finished.");
       return;
     }
     window.location.href = `/interview/${sessionId}/report`;
@@ -293,7 +296,7 @@ export function InterviewRoom({
       advance();
       return;
     }
-    await fetch(`/api/sessions/${sessionId}/answers`, {
+    const response = await apiFetch(`/api/sessions/${sessionId}/answers`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -308,6 +311,10 @@ export function InterviewRoom({
         replace: true,
       }),
     });
+    if (!response.ok) {
+      setError(await readApiError(response, "The notes could not be saved."));
+      return;
+    }
     advance();
   }
 
@@ -429,7 +436,11 @@ export function InterviewRoom({
             className="btn btn-ghost"
             type="button"
             onClick={async () => {
-              await fetch(`/api/sessions/${sessionId}/abandon`, { method: "POST" });
+              const response = await apiFetch(`/api/sessions/${sessionId}/abandon`, { method: "POST" });
+              if (!response.ok) {
+                setError(await readApiError(response, "The interview could not be left."));
+                return;
+              }
               window.location.href = "/home";
             }}
           >
