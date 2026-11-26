@@ -1,22 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { useApiFetch } from "@/lib/api-fetch";
+import { readApiError } from "@/lib/api-request";
 
 export function CheckoutButton({ planCode, label }: { planCode: "starter_monthly" | "ready_monthly"; label: string }) {
+  const apiFetch = useApiFetch();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
   async function start() {
     setPending(true);
     setError("");
-    const response = await fetch("/api/billing/checkout", {
+    const response = await apiFetch("/api/billing/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ planCode }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || typeof body.url !== "string") {
-      setError(typeof body.error === "string" ? body.error : "Checkout could not be started.");
+      setError(typeof body.error === "string" && body.error.trim() ? body.error : "Checkout could not be started.");
       setPending(false);
       return;
     }
@@ -32,14 +35,19 @@ export function CheckoutButton({ planCode, label }: { planCode: "starter_monthly
 }
 
 export function PortalButton() {
+  const apiFetch = useApiFetch();
   const [error, setError] = useState("");
 
   async function open() {
     setError("");
-    const response = await fetch("/api/billing/portal", { method: "POST" });
+    const response = await apiFetch("/api/billing/portal", { method: "POST" });
+    if (!response.ok) {
+      setError(await readApiError(response, "The billing portal could not be opened."));
+      return;
+    }
     const body = await response.json().catch(() => ({}));
-    if (!response.ok || typeof body.url !== "string") {
-      setError(typeof body.error === "string" ? body.error : "The billing portal could not be opened.");
+    if (typeof body.url !== "string") {
+      setError("The billing portal could not be opened.");
       return;
     }
     window.location.href = body.url;

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useApiFetch } from "@/lib/api-fetch";
 
 export function DeleteAccount() {
+  const apiFetch = useApiFetch();
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -10,14 +12,14 @@ export function DeleteAccount() {
   async function remove() {
     setPending(true);
     setError("");
-    const response = await fetch("/api/account/delete", {
+    const response = await apiFetch("/api/account/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ confirm }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setError(typeof body.error === "string" ? body.error : "The account could not be deleted.");
+      setError(typeof body.error === "string" && body.error.trim() ? body.error : "The account could not be deleted.");
       setPending(false);
       return;
     }

@@ -1,20 +1,10 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
-
-const isProtected = createRouteMatcher([
-  "/home(.*)",
-  "/profile(.*)",
-  "/prep(.*)",
-  "/interview(.*)",
-  "/history(.*)",
-  "/billing(.*)",
-  "/settings(.*)",
-  "/admin(.*)",
-  "/org(.*)",
-]);
+import { isApiPath, isProtectedPage } from "@/lib/api-request";
 
 const withClerk = clerkMiddleware(async (auth, request) => {
-  if (isProtected(request)) await auth.protect();
+  if (isApiPath(request.nextUrl.pathname)) return;
+  if (isProtectedPage(request.nextUrl.pathname)) await auth.protect();
 });
 
 function keysPresent(): boolean {
@@ -25,7 +15,7 @@ function keysPresent(): boolean {
 
 export default function middleware(request: NextRequest, event: NextFetchEvent) {
   if (!keysPresent()) {
-    if (isProtected(request)) {
+    if (isProtectedPage(request.nextUrl.pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = "/sign-in";
       url.searchParams.set("redirect_url", request.nextUrl.pathname);

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useApiFetch } from "@/lib/api-fetch";
 
 const COUNTS = [4, 6, 8, 10] as const;
 const TIMES = [45, 60, 90] as const;
@@ -22,11 +23,12 @@ export function StartInterview({
   const [seconds, setSeconds] = useState<(typeof TIMES)[number]>(60);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const apiFetch = useApiFetch();
 
   async function start() {
     setPending(true);
     setError("");
-    const response = await fetch("/api/sessions", {
+    const response = await apiFetch("/api/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -37,7 +39,7 @@ export function StartInterview({
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setError(typeof body.error === "string" ? body.error : "The interview could not be started.");
+      setError(typeof body.error === "string" && body.error.trim() ? body.error : "The interview could not be started.");
       setPending(false);
       return;
     }

@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useApiFetch } from "@/lib/api-fetch";
+import { readApiError } from "@/lib/api-request";
 
 export function TermsGate() {
+  const apiFetch = useApiFetch();
   const [accepted, setAccepted] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -11,13 +14,13 @@ export function TermsGate() {
   async function save() {
     setPending(true);
     setError("");
-    const response = await fetch("/api/consent", {
+    const response = await apiFetch("/api/consent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ kind: "terms", accepted: true }),
     });
     if (!response.ok) {
-      setError("The agreement could not be saved. Try again.");
+      setError(await readApiError(response, "The agreement could not be saved. Try again."));
       setPending(false);
       return;
     }
