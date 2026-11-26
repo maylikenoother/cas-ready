@@ -2,9 +2,9 @@ import { expect, test } from "@playwright/test";
 
 test("home page explains the practice limit", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Practise the interview");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Practise the UK Pre-CAS credibility interview");
   await expect(page.getByRole("note")).toContainText("does not decide, predict, or guarantee");
-  await expect(page.getByRole("link", { name: "Start with one free question" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Try a free question" }).first()).toBeVisible();
 });
 
 test("pricing, privacy, and terms are public", async ({ page }) => {
