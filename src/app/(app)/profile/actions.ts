@@ -1,11 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { apiUserEmail } from "@/lib/api-user";
 import { requireUser } from "@/lib/auth";
+import { ensureProfile } from "@/lib/ensure-profile";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { moneyOrNull, profileSchema } from "@/lib/validation";
 
 export async function saveProfile(formData: FormData): Promise<{ error: string } | { ok: true }> {
-  const { supabase, user } = await requireUser();
+  const { user } = await requireUser();
+  const admin = createAdminClient();
+  const ready = admin ? await ensureProfile(user.id, await apiUserEmail()) : false;
+  if (!admin || !ready) return { error: "The profile could not be saved." };
   const parsed = profileSchema.safeParse({
     fullName: formData.get("fullName"),
     homeCountry: formData.get("homeCountry"),
@@ -25,7 +31,7 @@ export async function saveProfile(formData: FormData): Promise<{ error: string }
   });
   if (!parsed.success) return { error: "Check the profile fields and try again." };
 
-  const { error: profileError } = await supabase.from("profiles").update({
+  const { error: profileError } = await admin.from("profiles").update({
     full_name: parsed.data.fullName || null,
     home_country: parsed.data.homeCountry || null,
   }).eq("id", user.id);
@@ -42,17 +48,17 @@ export async function saveProfile(formData: FormData): Promise<{ error: string }
     accommodation_distance: parsed.data.accommodationDistance || null,
     career_goal: parsed.data.careerGoal || null,
   };
-  const { error: studentError } = await supabase.from("student_profiles").upsert(student);
+  const { error: studentError } = await admin.from("student_profiles").upsert(student, { onConflict: "user_id" });
   if (studentError) return { error: "The study details could not be saved." };
 
-  const { error: financeError } = await supabase.from("student_finance_private").upsert({
+  const { error: financeError } = await admin.from("student_finance_private").upsert({
     user_id: user.id,
     tuition_fee_gbp: moneyOrNull(parsed.data.tuitionFee),
     deposit_paid_gbp: moneyOrNull(parsed.data.depositPaid),
     sponsor_name: parsed.data.sponsorName || null,
     sponsor_occupation: parsed.data.sponsorOccupation || null,
     sponsor_income: parsed.data.sponsorIncome || null,
-  });
+  }, { onConflict: "user_id" });
   if (financeError) return { error: "The finance details could not be saved." };
 
   revalidatePath("/profile");

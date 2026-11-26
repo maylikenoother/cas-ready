@@ -1,6 +1,8 @@
 import "server-only";
 import { redirect } from "next/navigation";
-import { apiUserId } from "@/lib/api-user";
+import { apiUserEmail, apiUserId } from "@/lib/api-user";
+import { ensureProfile } from "@/lib/ensure-profile";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { asNumber, asRow, asString } from "@/lib/text";
 
@@ -12,8 +14,10 @@ export async function requireUser() {
 }
 
 export async function loadProfile(userId: string) {
-  const { supabase } = await requireUser();
-  const { data } = await supabase
+  await ensureProfile(userId, await apiUserEmail());
+  const admin = createAdminClient();
+  const reader = admin ?? (await createClient());
+  const { data } = await reader
     .from("profiles")
     .select("id, email, full_name, role, home_country, recording_consent_at, terms_accepted_at, trial_consumed")
     .eq("id", userId)
@@ -34,8 +38,9 @@ export async function loadProfile(userId: string) {
 export type LoadedProfile = Awaited<ReturnType<typeof loadProfile>>;
 
 export async function loadSubscription(userId: string) {
-  const { supabase } = await requireUser();
-  const { data } = await supabase
+  const admin = createAdminClient();
+  const reader = admin ?? (await createClient());
+  const { data } = await reader
     .from("subscriptions")
     .select("status, plan_code, mock_quota, mocks_remaining, current_period_end, provider_customer_id")
     .eq("user_id", userId)

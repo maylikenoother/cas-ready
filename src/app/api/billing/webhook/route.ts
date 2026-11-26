@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureProfile } from "@/lib/ensure-profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BillingNotReadyError, readStripeWebhook } from "@/lib/billing/provider";
 import { planByCode } from "@/lib/plans";
@@ -91,6 +92,7 @@ async function loadSubscription(
 }
 
 async function upsertSubscription(admin: NonNullable<ReturnType<typeof createAdminClient>>, row: StoredSubscription) {
+  if (row.userId) await ensureProfile(row.userId, null);
   if (row.status === "active" || row.status === "trialing") {
     await admin
       .from("subscriptions")
