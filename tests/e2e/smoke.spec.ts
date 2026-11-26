@@ -18,18 +18,19 @@ test("pricing, privacy, and terms are public", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Terms of use");
 });
 
-test("sign in offers an email code", async ({ page }) => {
+test("sign in explains the email code", async ({ page }) => {
+  await page.goto("/sign-in");
+  await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
+  await expect(page.getByText("10 minutes")).toBeVisible();
   await page.goto("/login");
-  await expect(page.getByLabel("Email")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Email me a code" })).toBeVisible();
-  await expect(page.getByText("expires after 10 minutes")).toBeVisible();
+  await expect(page).toHaveURL(/\/sign-in/);
 });
 
 test("signed-out students are sent to sign in", async ({ page }) => {
   await page.goto("/home");
-  await expect(page).toHaveURL(/\/login\?next=/);
+  await expect(page).toHaveURL(/\/sign-in/);
   await page.goto("/interview/new");
-  await expect(page).toHaveURL(/\/login/);
+  await expect(page).toHaveURL(/\/sign-in/);
 });
 
 test("security headers are present", async ({ request }) => {

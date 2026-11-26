@@ -1,13 +1,14 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { apiUserId } from "@/lib/api-user";
 import { createClient } from "@/lib/supabase/server";
 import { asNumber, asRow, asString } from "@/lib/text";
 
 export async function requireUser() {
+  const userId = await apiUserId();
+  if (!userId) redirect("/sign-in");
   const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/login");
-  return { supabase, user: data.user };
+  return { supabase, user: { id: userId } };
 }
 
 export async function loadProfile(userId: string) {

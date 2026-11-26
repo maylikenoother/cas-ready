@@ -32,7 +32,7 @@ export default function HomePage() {
                 CAS Ready copies that shape: a question on screen, a brief pause, then a timed answer to the camera.
               </p>
               <div className="actions">
-                <Link className="btn btn-primary" href="/login">Start with one free question</Link>
+                <Link className="btn btn-primary" href="/sign-in">Start with one free question</Link>
                 <Link className="btn btn-secondary" href="/pricing">See plans</Link>
               </div>
               <div style={{ marginTop: 16 }}>

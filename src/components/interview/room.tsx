@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { DeviceCheck } from "@/components/device-check";
 import { emptySpeech, finaliseSpeech, rmsFromTimeDomain, stepSpeech, type SpeechStats } from "@/lib/speech";
 
@@ -47,6 +48,7 @@ export function InterviewRoom({
   startIndex: number;
   consented: boolean;
 }) {
+  const { getToken } = useAuth();
   const [phase, setPhase] = useState<Phase>(consented ? "device" : "consent");
   const [typedOnly, setTypedOnly] = useState(false);
   const [index, setIndex] = useState(startIndex);
@@ -219,7 +221,7 @@ export function InterviewRoom({
     const metrics = finaliseSpeech(statsRef.current, durationMs);
     let videoPath: string | undefined;
     if (blobs && blobs.video.size > 0) {
-      videoPath = await uploadVideo(userId, sessionId, question.sessionQuestionId, blobs.video) ?? undefined;
+      videoPath = await uploadVideo(userId, sessionId, question.sessionQuestionId, blobs.video, () => getToken()) ?? undefined;
     }
     let audioBase64: string | undefined;
     let audioMime: string | undefined;
@@ -456,10 +458,16 @@ function collect(recorder: MediaRecorder): () => Promise<Blob> {
   });
 }
 
-async function uploadVideo(userId: string, sessionId: string, questionId: string, blob: Blob) {
+async function uploadVideo(
+  userId: string,
+  sessionId: string,
+  questionId: string,
+  blob: Blob,
+  getToken: () => Promise<string | null>,
+) {
   try {
     const { createClient } = await import("@/lib/supabase/browser");
-    const supabase = createClient();
+    const supabase = createClient(getToken);
     const extension = blob.type.includes("mp4") ? "mp4" : "webm";
     const path = `${userId}/${sessionId}/${questionId}.${extension}`;
     const { error } = await supabase.storage.from("recordings").upload(path, blob, {

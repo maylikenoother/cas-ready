@@ -9,7 +9,7 @@ export function SiteHeader() {
           <Link href="/pricing">Pricing</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
-          <Link href="/login">Sign in</Link>
+          <Link href="/sign-in">Sign in</Link>
         </nav>
       </div>
     </header>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiUserId } from "@/lib/api-user";
 import { createClient } from "@/lib/supabase/server";
 import { sameOrigin } from "@/lib/validation";
 import { BillingNotReadyError, createPortalUrl } from "@/lib/billing/provider";
@@ -9,13 +10,13 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return NextResponse.json({ error: "This action is not allowed from another site." }, { status: 403 });
+  const userId = await apiUserId();
+  if (!userId) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
   const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
   const { data: subscriptionData } = await supabase
     .from("subscriptions")
     .select("provider_customer_id")
-    .eq("user_id", data.user.id)
+    .eq("user_id", userId)
     .not("provider_customer_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(1)

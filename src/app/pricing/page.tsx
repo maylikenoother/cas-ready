@@ -20,7 +20,7 @@ export default function PricingPage() {
             <h2>Free question</h2>
             <p className="timer-fake" style={{ fontSize: "2rem" }}>£0</p>
             <p>One timed answer, chosen from the course questions. You get the transcript, the rubric score, and the written notes. It is marked as a single-question result.</p>
-            <Link className="btn btn-secondary" href="/login">Create an account</Link>
+            <Link className="btn btn-secondary" href="/sign-up">Create an account</Link>
           </article>
           {PLANS.map((plan) => (
             <article className="card" key={plan.code}>

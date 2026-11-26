@@ -19,8 +19,11 @@ port = 54323
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/auth/callback"]
 enable_signup = true
+
+[auth.third_party.clerk]
+enabled = true
+domain = "boss-minnow-9913.clerk.accounts.dev"
 
 [auth.email]
 enable_signup = true

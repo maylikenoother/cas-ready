@@ -1,19 +1,17 @@
 "use client";
 
-import { createClient, supabaseConfigured } from "@/lib/supabase/browser";
+import { useClerk } from "@clerk/nextjs";
+import { clerkPublishableConfigured } from "@/lib/clerk-public";
 
 export function SignOut() {
+  if (!clerkPublishableConfigured()) return null;
+  return <ClerkSignOut />;
+}
+
+function ClerkSignOut() {
+  const { signOut } = useClerk();
   return (
-    <button
-      className="btn btn-secondary"
-      type="button"
-      disabled={!supabaseConfigured()}
-      onClick={async () => {
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        window.location.href = "/";
-      }}
-    >
+    <button className="btn btn-secondary" type="button" onClick={() => void signOut({ redirectUrl: "/" })}>
       Sign out
     </button>
   );

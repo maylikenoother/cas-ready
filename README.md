@@ -65,63 +65,35 @@ The service role key bypasses row level security. It must only live in `.env.loc
 1. In the Supabase dashboard, open **SQL Editor → New query**.
 2. Paste the whole of `supabase/migrations/20261126120000_schema.sql` and run it.
 3. New query. Paste the whole of `supabase/migrations/20261126120100_seed.sql` and run it.
+4. New query. Paste the whole of `supabase/migrations/20261126150000_clerk_auth.sql` and run it. This stores Clerk user ids and checks `auth.jwt()->>'sub'` on every private row.
 
 That creates the question bank (39 questions), the University of Lincoln profile, the maintenance figures, and the two plans. It also creates a private Storage bucket named `recordings`.
 
 If the storage section reports an error, open **Storage**, create a bucket named `recordings`, set it to **private**, and run the schema file again. The policy statements skip themselves if they already exist.
 
-### Turn on email codes
+### Connect Clerk
 
-Sign-in is a 6-digit code. The same address works for a first visit and for coming back. The app asks Supabase to email the code and then checks it with `verifyOtp`. It does not depend on the link in the message. If someone taps the link anyway, `/auth/callback` still finishes the sign-in.
+Sign-in and sign-up use Clerk. The development instance Frontend API is `https://boss-minnow-9913.clerk.accounts.dev`. People enter an email code. Clerk keeps that code for 10 minutes and the sign-in screen can send another one. Google can be switched on next to the code. Supabase still stores the practice data. It trusts the Clerk session token and reads the user id from `auth.jwt()->>'sub'`.
 
-1. Open **Authentication → Providers → Email**. Leave Email enabled.
-2. Set **Email OTP expiration** to `600` seconds (10 minutes). The code screen counts down those same 10 minutes. A shorter setting in Supabase would expire the code before the screen says it has.
-3. Open **Authentication → URL configuration**.
-4. Set **Site URL** to `http://localhost:3000` while you are developing.
-5. Add `http://localhost:3000/auth/callback` to **Redirect URLs**.
-6. When you deploy, set Site URL to the Vercel address and add `https://your-app.vercel.app/auth/callback` as well.
-
-#### Email templates
-
-Open **Authentication → Emails → Templates**. Paste the text below into both **Magic Link** (people who already have an account) and **Confirm signup** (people signing in for the first time, if confirmations are on). Both must include `{{ .Token }}`, or the email will not contain the code.
-
-Magic Link:
-
-```html
-<h2>Your CAS Ready code</h2>
-<p>Enter this code on the sign-in page. It expires in 10 minutes.</p>
-<p style="font-size:28px;font-weight:700;letter-spacing:6px;">{{ .Token }}</p>
-<p>If you did not try to sign in, you can ignore this email.</p>
-<p>You can also open this link: <a href="{{ .ConfirmationURL }}">Continue to CAS Ready</a></p>
-```
-
-Confirm signup:
-
-```html
-<h2>Confirm your CAS Ready email</h2>
-<p>Enter this code on the sign-in page to finish creating your account. It expires in 10 minutes.</p>
-<p style="font-size:28px;font-weight:700;letter-spacing:6px;">{{ .Token }}</p>
-<p>If you did not ask for this, you can ignore this email.</p>
-<p>You can also open this link: <a href="{{ .ConfirmationURL }}">Continue to CAS Ready</a></p>
-```
-
-#### Email limits and your own mailer
-
-Supabase’s built-in email service is for trying the product. It is tightly rate limited. The number in force is shown under **Authentication → Rate Limits** as “Rate limit for sending emails”. On many projects that limit is 2 emails per hour, which is why a second code can fail on the live site. The sign-in screen says so when Supabase returns a rate-limit error.
-
-For a real site, send mail through your own provider, then raise that rate limit to a number you can afford.
-
-Resend is one option:
-
-1. In Resend, verify the domain you will send from, and create an API key.
-2. In Supabase, open **Project Settings → Authentication → SMTP Settings** and turn on custom SMTP.
-3. Host `smtp.resend.com`, port `465`, username `resend`, password the API key.
-4. Set the sender name and a from address on that verified domain, for example `CAS Ready <hello@yourdomain.com>`.
-5. Save, then send yourself a code from the sign-in page. The 10-minute countdown starts again each time a new code is sent. The Resend button waits 60 seconds between sends.
+1. Open the Clerk application for `boss-minnow-9913.clerk.accounts.dev`.
+2. **Configure → Email**. Turn email on. Use **Email verification code** rather than a link. Codes last 10 minutes, and the form includes resend.
+3. **Configure → User & authentication**. Let people sign in with an email code. You can leave a password off so the code is the way in. Under **Social connections**, Google is optional.
+4. **Configure → API keys**. Copy the publishable key into `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and the secret key into `CLERK_SECRET_KEY`. Do not commit either key.
+5. **Configure → Webhooks → Add endpoint**.
+   - URL: `https://YOUR-APP.vercel.app/api/webhooks/clerk` (for local testing, use a tunnel to `http://localhost:3000/api/webhooks/clerk`).
+   - Subscribe to `user.created`, `user.updated`, and `user.deleted`.
+   - Copy the signing secret into `CLERK_WEBHOOK_SIGNING_SECRET`.
+6. The endpoint creates and updates `profiles`, and on `user.deleted` it removes that person’s recordings and rows.
+7. In the Supabase dashboard open **Authentication → Sign In / Up → Third-party auth → Add Clerk**. Set the domain to `boss-minnow-9913.clerk.accounts.dev` (no `https://`). The same domain is in `supabase/config.toml` under `[auth.third_party.clerk]` for the local CLI.
+8. Paths: sign-in is `/sign-in`, sign-up is `/sign-up`. After either one, people land on `/home`.
 
 ### Make yourself an admin
 
-Sign up once in the app so your user exists. Then, in the SQL editor:
+Sign in once so the webhook creates your profile. Then either:
+
+- In Clerk, open your user and set public metadata to `{ "role": "admin" }`. The `user.updated` webhook copies that onto the profile. `university` and `agent` are the other roles. Anything else stays `student`.
+
+or, in the Supabase SQL editor:
 
 ```sql
 update public.profiles
@@ -205,7 +177,7 @@ Unit tests cover the rubric, the maintenance calculator, question selection, the
 3. Add every variable from `.env.example` in **Project → Settings → Environment Variables**. Use the production Supabase URL and keys. Use Stripe **test** keys until you are ready for live charges.
 4. Set `NEXT_PUBLIC_APP_URL` to the Vercel URL, with no trailing slash. You can set it after the first deploy, then redeploy.
 5. Deploy.
-6. In Supabase **Authentication → URL configuration**, set Site URL to the Vercel URL and add `https://YOUR-APP.vercel.app/auth/callback` as a redirect URL.
+6. In Clerk, set the webhook endpoint to `https://YOUR-APP.vercel.app/api/webhooks/clerk` for `user.created`, `user.updated`, and `user.deleted`. In Supabase, add Clerk as a third-party auth provider with domain `boss-minnow-9913.clerk.accounts.dev`.
 7. In Stripe **Developers → Webhooks → Add endpoint**:
    - URL: `https://YOUR-APP.vercel.app/api/billing/webhook`
    - Events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`
