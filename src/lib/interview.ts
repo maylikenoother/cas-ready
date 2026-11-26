@@ -1,4 +1,6 @@
 import "server-only";
+import { apiUserEmail } from "@/lib/api-user";
+import { ensureProfile } from "@/lib/ensure-profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decideAccess, accessMessage, type SessionMode } from "@/lib/entitlements";
 import { selectQuestions, renderPrompt } from "@/lib/questions";
@@ -25,6 +27,8 @@ export async function startInterview(userId: string, body: unknown): Promise<Res
   if (!parsed.success) return { ok: false, status: 400, error: "Check the interview settings and try again." };
   const admin = createAdminClient();
   if (!admin) return { ok: false, status: 500, error: "The server database key is not configured." };
+  const ready = await ensureProfile(userId, await apiUserEmail());
+  if (!ready) return { ok: false, status: 500, error: "The interview could not be started." };
 
   const mode = parsed.data.mode;
   const { data: profileData } = await admin.from("profiles").select("trial_consumed, home_country").eq("id", userId).maybeSingle();
@@ -148,6 +152,7 @@ export async function saveAnswer(userId: string, sessionId: string, body: unknow
   if (!parsed.success) return { ok: false, status: 400, error: "That answer could not be read. Try again." };
   const admin = createAdminClient();
   if (!admin) return { ok: false, status: 500, error: "The server database key is not configured." };
+  await ensureProfile(userId, await apiUserEmail());
 
   const { data: sessionData } = await admin.from("sessions").select("*").eq("id", sessionId).eq("user_id", userId).maybeSingle();
   const session = asRow(sessionData);
@@ -346,6 +351,7 @@ export async function completeInterview(userId: string, sessionId: string): Prom
 export async function abandonInterview(userId: string, sessionId: string): Promise<Result<{ refunded: boolean }>> {
   const admin = createAdminClient();
   if (!admin) return { ok: false, status: 500, error: "The server database key is not configured." };
+  await ensureProfile(userId, await apiUserEmail());
   const { data: sessionData } = await admin
     .from("sessions")
     .select("id, status, credit_consumed, mode")

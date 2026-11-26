@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiUserEmail, apiUserId } from "@/lib/api-user";
+import { ensureProfile } from "@/lib/ensure-profile";
 import { rateLimit } from "@/lib/rate-limit";
 import { sameOrigin } from "@/lib/validation";
 import { BillingNotReadyError, createSubscriptionCheckout } from "@/lib/billing/provider";
@@ -15,6 +16,8 @@ export async function POST(request: Request) {
   const userId = await apiUserId();
   const email = await apiUserEmail();
   if (!userId || !email) return NextResponse.json({ error: "Sign in with an email address before paying." }, { status: 401 });
+  const profileReady = await ensureProfile(userId, email);
+  if (!profileReady) return NextResponse.json({ error: "Checkout could not be started." }, { status: 500 });
   const allowed = await rateLimit(`checkout:${userId}`, 10, 3600);
   if (!allowed) return NextResponse.json({ error: "Too many checkout attempts. Wait an hour and try again." }, { status: 429 });
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
