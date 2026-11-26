@@ -37,7 +37,8 @@ export default async function ReportPage({ params }: { params: Promise<{ session
       <div>
         <p className="small muted">{formatWhen(asString(session.completed_at))} · {asString(session.mode)}{session.partial === true ? " · partial result" : ""}</p>
         <h1>Practice report</h1>
-        <Disclaimer />
+        <p className="muted">A practice score for this session.</p>
+        <Disclaimer compact />
       </div>
       <div className="grid-2">
         <article className="card">

@@ -7,8 +7,8 @@ export function SiteHeader() {
         <Link className="brand" href="/"><span className="logo-mark" aria-hidden="true">C</span> CAS Ready</Link>
         <nav className="nav" aria-label="Public">
           <Link href="/pricing">Pricing</Link>
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/terms">Terms</Link>
+          <Link className="nav-quiet" href="/privacy">Privacy</Link>
+          <Link className="nav-quiet" href="/terms">Terms</Link>
           <Link href="/sign-in">Sign in</Link>
         </nav>
       </div>

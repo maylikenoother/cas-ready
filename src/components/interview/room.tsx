@@ -330,17 +330,17 @@ export function InterviewRoom({
         <div className="room-progress" role="progressbar" aria-valuemin={1} aria-valuemax={questions.length} aria-valuenow={Math.min(index + 1, questions.length)} aria-label="Interview progress">
           <span style={{ width: `${questions.length ? (Math.min(index + 1, questions.length) / questions.length) * 100 : 0}%` }} />
         </div>
-        <p className="small">Practice only. This does not predict a CAS or a visa. {mode === "mock" || mode === "trial" ? "You cannot re-record in this mode." : "You can re-record in practice mode."}</p>
+        <p className="small">Practice only. {mode === "mock" || mode === "trial" ? "No re-record." : "You can re-record."}</p>
         {error ? <p className="banner banner-warn" role="alert">{error}</p> : null}
 
         {phase === "consent" ? (
           <section className="room-card">
             <h1>Before the camera comes on</h1>
-            <ul>
-              <li>We record video and audio and store them in a private bucket for the retention period, or until you delete the account.</li>
-              <li>Audio may be sent to Google Gemini, from the server, to make a transcript and practice notes. The privacy notice says whether this copy uses the free or paid tier.</li>
-              <li>We do not analyse your face, your mood, or whether you seem honest.</li>
-            </ul>
+            <p>We record video and audio. We do not look at your face.</p>
+            <details>
+              <summary>What is stored</summary>
+              <p>Files stay private until you delete them. Audio may be sent to Gemini for a transcript. See the privacy notice for the tier in use.</p>
+            </details>
             <label className="check">
               <input type="checkbox" checked={practiceOnly} onChange={(event) => setPracticeOnly(event.target.checked)} />
               <span>I understand this is practice only and does not predict a CAS or a visa.</span>

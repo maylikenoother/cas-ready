@@ -8,6 +8,8 @@ It is practice software. It does not predict a CAS, a visa, or a university deci
 
 The first university profile in the database is the University of Lincoln, MSc International Business, because that is what the handover was built around. The app is not affiliated with the university, with Enroly, or with UK Visas and Immigration.
 
+The drawings in the interface are listed in [CREDITS.md](CREDITS.md).
+
 ## What a student can do
 
 - Create an account with an email code. There is no password.

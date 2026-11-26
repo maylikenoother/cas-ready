@@ -100,7 +100,7 @@ export function DeviceCheck({ onCamera, onTyped }: { onCamera: () => void; onTyp
   return (
     <section className="room-card">
       <h1>Check the room</h1>
-      <p>Brightness only. Nothing here looks at your face, your expression, or whether you seem nervous.</p>
+      <p>Brightness only. We do not look at your face.</p>
       <video ref={videoRef} className="viewfinder" muted playsInline />
       <div className="meter" aria-hidden="true"><span style={{ width: `${level}%` }} /></div>
       <p role="status">{light}</p>
@@ -114,11 +114,11 @@ export function DeviceCheck({ onCamera, onTyped }: { onCamera: () => void; onTyp
       </div>
       <label className="check">
         <input type="checkbox" checked={alone} onChange={(event) => setAlone(event.target.checked)} />
-        <span>I am alone, or as close to alone as I can be, and the room is quiet.</span>
+        <span>I am alone, in a quiet room.</span>
       </label>
       <label className="check">
         <input type="checkbox" checked={passport} onChange={(event) => setPassport(event.target.checked)} />
-        <span>My passport is within reach. This app does not take a photo of it. The real interview may ask you to show it.</span>
+        <span>My passport is nearby. We do not photograph it.</span>
       </label>
       <div className="actions">
         <button className="btn btn-primary" type="button" disabled={!live || !voiceOk || !alone || !passport} onClick={() => { streamRef.current?.getTracks().forEach((track) => track.stop()); onCamera(); }}>

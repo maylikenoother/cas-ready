@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Disclaimer } from "@/components/site";
 import { loadProfile, loadSubscription, requireUser } from "@/lib/auth";
@@ -31,17 +32,20 @@ export default async function HomeDashboard() {
 
   return (
     <div className="stack-lg">
-      <div>
-        <p className="kicker">Your practice</p>
-        <h1>{profile.fullName ? `Hello, ${profile.fullName.split(" ")[0]}` : "Your practice"}</h1>
-        <p className="muted">A quiet room, your own words, and a timer. That is the useful part.</p>
-        <Disclaimer compact />
+      <div className="grid-2" style={{ alignItems: "center" }}>
+        <div>
+          <p className="kicker">Your practice</p>
+          <h1>{profile.fullName ? `Hello, ${profile.fullName.split(" ")[0]}` : "Your practice"}</h1>
+          <p className="muted">One quiet room. Your own words.</p>
+          <Disclaimer compact />
+        </div>
+        <Image unoptimized src="/illustrations/calm.svg" alt="" width={160} height={160} />
       </div>
       <div className="grid-2">
         <article className="card stack">
           <h2>Next step</h2>
           {open ? <p>You have an interview in progress.</p> : null}
-          {!profile.trialConsumed ? <p>Your free question is still available. It includes the full feedback for that one answer.</p> : <p>The free question has been used.</p>}
+          {!profile.trialConsumed ? <p>Your free question is ready.</p> : <p>The free question has been used.</p>}
           <div className="actions">
             {open ? <Link className="btn btn-primary" href={`/interview/${asString(open.id)}`}>Continue</Link> : null}
             <Link className="btn btn-primary" href="/interview/new">Start an interview</Link>
