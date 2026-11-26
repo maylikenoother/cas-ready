@@ -355,6 +355,23 @@ textarea { min-height: 120px; resize: vertical; }
 .prose ul, .prose ol { margin: 0; padding-left: 1.2rem; line-height: 1.5; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: var(--card); font-weight: 650; font-size: 0.9rem; }
+.theme-grid { display: grid; gap: 24px; grid-template-columns: 1fr 1fr; }
+.icon-card { display: grid; gap: 12px; align-content: start; color: #3c1280; }
+@media (prefers-color-scheme: dark) {
+  .icon-card { color: var(--purple); }
+}
+.icon-card svg { width: 40px; height: 40px; }
+.perk-list { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.perk-list li { padding-left: 16px; border-left: 3px solid var(--gold); }
+.who-strip, .teaser {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 32px;
+}
+.cta-band { background: #3c1280; color: #f6f1ff; padding: 72px 0; }
+.cta-band h2 { color: #fff; }
+.cta-band p { color: #f6f1ff; }
 .faq { display: grid; gap: 16px; }
 .faq details { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; }
 .faq summary { font-weight: 740; cursor: pointer; }
@@ -379,6 +396,8 @@ textarea { min-height: 120px; resize: vertical; }
   .hero { grid-template-columns: 1.05fr 0.95fr; }
   .grid-2 { grid-template-columns: 1fr 1fr; }
   .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .theme-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .cta-band { padding: 112px 0; }
   .bottom-nav { display: none; }
   .shell { padding-bottom: 48px; }
   .shell-nav { display: flex; }
