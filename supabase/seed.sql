@@ -1,0 +1,2 @@
+-- Reference data is loaded by supabase/migrations/20261126120100_seed.sql
+-- so a hosted project that runs the migrations in the SQL editor gets the same rows.
