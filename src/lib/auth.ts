@@ -16,12 +16,16 @@ export async function requireUser() {
 export async function loadProfile(userId: string) {
   await ensureProfile(userId, await apiUserEmail());
   const admin = createAdminClient();
-  const reader = admin ?? (await createClient());
-  const { data } = await reader
+  if (!admin) {
+    console.error("[profile] step=read", "missing");
+    return emptyProfile(userId);
+  }
+  const { data, error } = await admin
     .from("profiles")
     .select("id, email, full_name, role, home_country, recording_consent_at, terms_accepted_at, trial_consumed")
     .eq("id", userId)
     .maybeSingle();
+  if (error) console.error("[profile] step=read", error.code, error.message);
   const row = asRow(data);
   return {
     id: userId,
@@ -35,12 +39,28 @@ export async function loadProfile(userId: string) {
   };
 }
 
+function emptyProfile(userId: string) {
+  return {
+    id: userId,
+    email: "",
+    fullName: "",
+    role: "student",
+    homeCountry: "",
+    recordingConsentAt: null,
+    termsAcceptedAt: null,
+    trialConsumed: false,
+  };
+}
+
 export type LoadedProfile = Awaited<ReturnType<typeof loadProfile>>;
 
 export async function loadSubscription(userId: string) {
   const admin = createAdminClient();
-  const reader = admin ?? (await createClient());
-  const { data } = await reader
+  if (!admin) {
+    console.error("[subscription] step=read", "missing");
+    return null;
+  }
+  const { data, error } = await admin
     .from("subscriptions")
     .select("status, plan_code, mock_quota, mocks_remaining, current_period_end, provider_customer_id")
     .eq("user_id", userId)
@@ -48,6 +68,7 @@ export async function loadSubscription(userId: string) {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (error) console.error("[subscription] step=read", error.code, error.message);
   const row = asRow(data);
   if (!row) return null;
   return {
