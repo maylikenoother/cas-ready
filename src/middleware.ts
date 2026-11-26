@@ -1,63 +1,44 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 
-const PROTECTED = [
-  /^\/home(?:\/|$)/,
-  /^\/profile(?:\/|$)/,
-  /^\/prep(?:\/|$)/,
-  /^\/interview(?:\/|$)/,
-  /^\/history(?:\/|$)/,
-  /^\/billing(?:\/|$)/,
-  /^\/settings(?:\/|$)/,
-  /^\/admin(?:\/|$)/,
-  /^\/org(?:\/|$)/,
-];
+const isProtected = createRouteMatcher([
+  "/home(.*)",
+  "/profile(.*)",
+  "/prep(.*)",
+  "/interview(.*)",
+  "/history(.*)",
+  "/billing(.*)",
+  "/settings(.*)",
+  "/admin(.*)",
+  "/org(.*)",
+]);
 
-export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request });
-  const protectedPath = PROTECTED.some((pattern) => pattern.test(request.nextUrl.pathname));
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const configured = Boolean(url && key && !url.includes("example.supabase.co"));
+const withClerk = clerkMiddleware(async (auth, request) => {
+  if (isProtected(request)) await auth.protect();
+});
 
-  if (!configured) {
-    if (protectedPath) return redirectToLogin(request);
-    return response;
-  }
-
-  const supabase = createServerClient(url as string, key as string, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        for (const cookie of cookiesToSet) {
-          request.cookies.set(cookie.name, cookie.value);
-          response.cookies.set(cookie.name, cookie.value, cookie.options);
-        }
-      },
-    },
-  });
-
-  let userId: string | null = null;
-  try {
-    const { data } = await supabase.auth.getUser();
-    userId = data.user?.id ?? null;
-  } catch {
-    userId = null;
-  }
-
-  if (protectedPath && !userId) return redirectToLogin(request);
-  return response;
+function keysPresent(): boolean {
+  const publishable = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+  const secret = process.env.CLERK_SECRET_KEY ?? "";
+  return (publishable.startsWith("pk_test_") || publishable.startsWith("pk_live_")) && secret.startsWith("sk_");
 }
 
-function redirectToLogin(request: NextRequest) {
-  const login = request.nextUrl.clone();
-  login.pathname = "/login";
-  login.searchParams.set("next", request.nextUrl.pathname);
-  return NextResponse.redirect(login);
+export default function middleware(request: NextRequest, event: NextFetchEvent) {
+  if (!keysPresent()) {
+    if (isProtected(request)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/sign-in";
+      url.searchParams.set("redirect_url", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+  return withClerk(request, event);
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
 };

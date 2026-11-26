@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { DeviceCheck } from "@/components/device-check";
 import { emptySpeech, finaliseSpeech, rmsFromTimeDomain, stepSpeech, type SpeechStats } from "@/lib/speech";
 
@@ -47,6 +48,7 @@ export function InterviewRoom({
   startIndex: number;
   consented: boolean;
 }) {
+  const { getToken } = useAuth();
   const [phase, setPhase] = useState<Phase>(consented ? "device" : "consent");
   const [typedOnly, setTypedOnly] = useState(false);
   const [index, setIndex] = useState(startIndex);
@@ -95,6 +97,14 @@ export function InterviewRoom({
     // beginAnswer is stable enough for a timer that restarts when the phase changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, index, prepSeconds, answerSeconds]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (phase !== "record" || !video || !stream) return;
+    video.srcObject = stream;
+    void video.play().catch(() => undefined);
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== "record") return;
@@ -211,7 +221,7 @@ export function InterviewRoom({
     const metrics = finaliseSpeech(statsRef.current, durationMs);
     let videoPath: string | undefined;
     if (blobs && blobs.video.size > 0) {
-      videoPath = await uploadVideo(userId, sessionId, question.sessionQuestionId, blobs.video) ?? undefined;
+      videoPath = await uploadVideo(userId, sessionId, question.sessionQuestionId, blobs.video, () => getToken()) ?? undefined;
     }
     let audioBase64: string | undefined;
     let audioMime: string | undefined;
@@ -317,17 +327,20 @@ export function InterviewRoom({
           <a href="/home">Leave</a>
           <span>{mode === "mock" ? "Mock" : mode === "trial" ? "Free question" : "Practice"} · {Math.min(index + 1, questions.length)} of {questions.length}</span>
         </div>
-        <p className="small">Practice only. This does not predict a CAS or a visa. {mode === "mock" || mode === "trial" ? "You cannot re-record in this mode." : "You can re-record in practice mode."}</p>
+        <div className="room-progress" role="progressbar" aria-valuemin={1} aria-valuemax={questions.length} aria-valuenow={Math.min(index + 1, questions.length)} aria-label="Interview progress">
+          <span style={{ width: `${questions.length ? (Math.min(index + 1, questions.length) / questions.length) * 100 : 0}%` }} />
+        </div>
+        <p className="small">Practice only. {mode === "mock" || mode === "trial" ? "No re-record." : "You can re-record."}</p>
         {error ? <p className="banner banner-warn" role="alert">{error}</p> : null}
 
         {phase === "consent" ? (
           <section className="room-card">
             <h1>Before the camera comes on</h1>
-            <ul>
-              <li>We record video and audio and store them in a private bucket for the retention period, or until you delete the account.</li>
-              <li>Audio may be sent to Google Gemini, from the server, to make a transcript and practice notes. The privacy notice says whether this copy uses the free or paid tier.</li>
-              <li>We do not analyse your face, your mood, or whether you seem honest.</li>
-            </ul>
+            <p>We record video and audio. We do not look at your face.</p>
+            <details>
+              <summary>What is stored</summary>
+              <p>Files stay private until you delete them. Audio may be sent to Gemini for a transcript. See the privacy notice for the tier in use.</p>
+            </details>
             <label className="check">
               <input type="checkbox" checked={practiceOnly} onChange={(event) => setPracticeOnly(event.target.checked)} />
               <span>I understand this is practice only and does not predict a CAS or a visa.</span>
@@ -364,7 +377,7 @@ export function InterviewRoom({
             {phase === "record" ? (
               <p className="rec" role="status"><i /> Recording · {secondsLeft}s left</p>
             ) : null}
-            {!typedOnly && phase !== "notes" && phase !== "feedback" ? <video ref={videoRef} className="viewfinder" muted playsInline /> : null}
+            {(phase === "record" || phase === "review" || phase === "save") && !typedOnly ? <video ref={videoRef} className="viewfinder" muted playsInline /> : null}
             {phase === "type" ? (
               <>
                 <p role="status">{secondsLeft}s left to type the answer you would have said.</p>
@@ -445,10 +458,16 @@ function collect(recorder: MediaRecorder): () => Promise<Blob> {
   });
 }
 
-async function uploadVideo(userId: string, sessionId: string, questionId: string, blob: Blob) {
+async function uploadVideo(
+  userId: string,
+  sessionId: string,
+  questionId: string,
+  blob: Blob,
+  getToken: () => Promise<string | null>,
+) {
   try {
     const { createClient } = await import("@/lib/supabase/browser");
-    const supabase = createClient();
+    const supabase = createClient(getToken);
     const extension = blob.type.includes("mp4") ? "mp4" : "webm";
     const path = `${userId}/${sessionId}/${questionId}.${extension}`;
     const { error } = await supabase.storage.from("recordings").upload(path, blob, {

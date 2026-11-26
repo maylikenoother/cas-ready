@@ -1,3 +1,4 @@
+import { apiUserId } from "@/lib/api-user";
 import { createClient } from "@/lib/supabase/server";
 import { buildReportPdf } from "@/lib/report-pdf";
 import { bandLabel, type Band } from "@/lib/bands";
@@ -7,17 +8,17 @@ export const runtime = "nodejs";
 
 export async function GET(_request: Request, context: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await context.params;
+  const userId = await apiUserId();
+  if (!userId) return new Response("Sign in to continue.", { status: 401 });
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return new Response("Sign in to continue.", { status: 401 });
 
-  const { data: sessionData } = await supabase.from("sessions").select("*").eq("id", sessionId).eq("user_id", auth.user.id).maybeSingle();
+  const { data: sessionData } = await supabase.from("sessions").select("*").eq("id", sessionId).eq("user_id", userId).maybeSingle();
   const session = asRow(sessionData);
   if (!session || asString(session.status) !== "completed") {
     return new Response("The report is not ready.", { status: 404 });
   }
-  const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", auth.user.id).maybeSingle();
-  const { data: studentData } = await supabase.from("student_profiles").select("university_id, course_id").eq("user_id", auth.user.id).maybeSingle();
+  const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  const { data: studentData } = await supabase.from("student_profiles").select("university_id, course_id").eq("user_id", userId).maybeSingle();
   const student = asRow(studentData);
   const { data: courseData } = asString(student?.course_id)
     ? await supabase.from("courses").select("name").eq("id", asString(student?.course_id) ?? "").maybeSingle()

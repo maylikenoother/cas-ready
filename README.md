@@ -8,6 +8,8 @@ It is practice software. It does not predict a CAS, a visa, or a university deci
 
 The first university profile in the database is the University of Lincoln, MSc International Business, because that is what the handover was built around. The app is not affiliated with the university, with Enroly, or with UK Visas and Immigration.
 
+The drawings in the interface are listed in [CREDITS.md](CREDITS.md).
+
 ## What a student can do
 
 - Create an account with an email code. There is no password.
@@ -65,26 +67,35 @@ The service role key bypasses row level security. It must only live in `.env.loc
 1. In the Supabase dashboard, open **SQL Editor → New query**.
 2. Paste the whole of `supabase/migrations/20261126120000_schema.sql` and run it.
 3. New query. Paste the whole of `supabase/migrations/20261126120100_seed.sql` and run it.
+4. New query. Paste the whole of `supabase/migrations/20261126150000_clerk_auth.sql` and run it. This stores Clerk user ids and checks `auth.jwt()->>'sub'` on every private row.
 
 That creates the question bank (39 questions), the University of Lincoln profile, the maintenance figures, and the two plans. It also creates a private Storage bucket named `recordings`.
 
 If the storage section reports an error, open **Storage**, create a bucket named `recordings`, set it to **private**, and run the schema file again. The policy statements skip themselves if they already exist.
 
-### Turn on email sign-in
+### Connect Clerk
 
-1. Open **Authentication → Providers → Email**. Leave Email enabled.
-2. Open **Authentication → URL configuration**.
-3. Set **Site URL** to `http://localhost:3000` while you are developing.
-4. Add `http://localhost:3000/auth/callback` to **Redirect URLs**.
-5. When you deploy, add the Vercel URL as well, for example `https://your-app.vercel.app/auth/callback`.
+Sign-in and sign-up use Clerk. The development instance Frontend API is `https://boss-minnow-9913.clerk.accounts.dev`. People enter an email code. Clerk keeps that code for 10 minutes and the sign-in screen can send another one. Google can be switched on next to the code. Supabase still stores the practice data. It trusts the Clerk session token and reads the user id from `auth.jwt()->>'sub'`.
 
-Supabase sends both a link and a 6-digit code. The sign-in page accepts the code, which is easier on a phone. Check the Auth email template if the code is missing: the template should include `{{ .Token }}`.
-
-Confirmations can stay on. The user proves they own the inbox by entering the code.
+1. Open the Clerk application for `boss-minnow-9913.clerk.accounts.dev`.
+2. **Configure → Email**. Turn email on. Use **Email verification code** rather than a link. Codes last 10 minutes, and the form includes resend.
+3. **Configure → User & authentication**. Let people sign in with an email code. You can leave a password off so the code is the way in. Under **Social connections**, Google is optional.
+4. **Configure → API keys**. Copy the publishable key into `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and the secret key into `CLERK_SECRET_KEY`. Do not commit either key.
+5. **Configure → Webhooks → Add endpoint**.
+   - URL: `https://YOUR-APP.vercel.app/api/webhooks/clerk` (for local testing, use a tunnel to `http://localhost:3000/api/webhooks/clerk`).
+   - Subscribe to `user.created`, `user.updated`, and `user.deleted`.
+   - Copy the signing secret into `CLERK_WEBHOOK_SIGNING_SECRET`.
+6. The endpoint creates and updates `profiles`, and on `user.deleted` it removes that person’s recordings and rows.
+7. In the Supabase dashboard open **Authentication → Sign In / Up → Third-party auth → Add Clerk**. Set the domain to `boss-minnow-9913.clerk.accounts.dev` (no `https://`). The same domain is in `supabase/config.toml` under `[auth.third_party.clerk]` for the local CLI.
+8. Paths: sign-in is `/sign-in`, sign-up is `/sign-up`. After either one, people land on `/home`.
 
 ### Make yourself an admin
 
-Sign up once in the app so your user exists. Then, in the SQL editor:
+Sign in once so the webhook creates your profile. Then either:
+
+- In Clerk, open your user and set public metadata to `{ "role": "admin" }`. The `user.updated` webhook copies that onto the profile. `university` and `agent` are the other roles. Anything else stays `student`.
+
+or, in the Supabase SQL editor:
 
 ```sql
 update public.profiles
@@ -168,7 +179,7 @@ Unit tests cover the rubric, the maintenance calculator, question selection, the
 3. Add every variable from `.env.example` in **Project → Settings → Environment Variables**. Use the production Supabase URL and keys. Use Stripe **test** keys until you are ready for live charges.
 4. Set `NEXT_PUBLIC_APP_URL` to the Vercel URL, with no trailing slash. You can set it after the first deploy, then redeploy.
 5. Deploy.
-6. In Supabase **Authentication → URL configuration**, set Site URL to the Vercel URL and add `https://YOUR-APP.vercel.app/auth/callback` as a redirect URL.
+6. In Clerk, set the webhook endpoint to `https://YOUR-APP.vercel.app/api/webhooks/clerk` for `user.created`, `user.updated`, and `user.deleted`. In Supabase, add Clerk as a third-party auth provider with domain `boss-minnow-9913.clerk.accounts.dev`.
 7. In Stripe **Developers → Webhooks → Add endpoint**:
    - URL: `https://YOUR-APP.vercel.app/api/billing/webhook`
    - Events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`

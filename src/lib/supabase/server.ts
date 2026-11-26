@@ -1,6 +1,7 @@
 import "server-only";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { clerkServerConfigured } from "@/lib/api-user";
 import { supabasePublicEnv } from "@/lib/env";
 
 export async function createClient() {
@@ -8,21 +9,11 @@ export async function createClient() {
   if (!env) {
     throw new Error("Supabase is not configured.");
   }
-  const cookieStore = await cookies();
-  return createServerClient(env.url, env.anonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          for (const cookie of cookiesToSet) {
-            cookieStore.set(cookie.name, cookie.value, cookie.options);
-          }
-        } catch {
-          // Server Components cannot always write cookies. The proxy refreshes them.
-        }
-      },
+  return createSupabaseClient(env.url, env.anonKey, {
+    accessToken: async () => {
+      if (!clerkServerConfigured()) return null;
+      const { getToken } = await auth();
+      return (await getToken()) ?? null;
     },
   });
 }
